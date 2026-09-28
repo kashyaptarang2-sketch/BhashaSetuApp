@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BhashaSetu - Learn Local Languages</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <!-- Top Navbar ke right side mein ye icons/buttons add karein -->
+        <div class="user-auth-section" id="auth-buttons">
+            <button class="btn btn-secondary" id="open-login-btn">
+                <i class="fa-solid fa-right-to-bracket"></i> Login
+            </button>
+            <div class="user-profile hidden" id="user-profile-badge">
+                <i class="fa-solid fa-circle-user"></i>
+                <span id="user-display-name">User</span>
+                <button id="logout-btn" title="Logout" style="background:none; border:none; color:red; cursor:pointer; margin-left:8px;">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+        <div class="logo">
+            <i class="fa-solid fa-language"></i>
+            <span>BhashaSetu</span>
+        </div>
+        
+        <div class="controls">
+            <!-- Language Selectors -->
+            <div class="lang-selector">
+                <label for="base-lang" data-i18n="baseLang">Base:</label>
+                <select id="base-lang">
+                    <option value="en">English</option>
+                    <option value="hi">हिंदी</option>
+                    <option value="mr">मराठी</option>
+                </select>
+            </div>
+
+            <div class="lang-selector">
+                <label for="target-lang" data-i18n="targetLang">Target:</label>
+                <select id="target-lang">
+                    <option value="hi">हिंदी (Hindi)</option>
+                    <option value="mr">मराठी (Marathi)</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+
+            <!-- Gamification Stats -->
+            <div class="stats">
+                <span class="stat-item" title="Daily Streak">
+                    <i class="fa-solid fa-fire fire-icon"></i>
+                    <span id="streak-count">0</span>
+                </span>
+                <span class="stat-item" title="XP Points">
+                    <i class="fa-solid fa-bolt xp-icon"></i>
+                    <span id="xp-count">0</span>
+                </span>
+            </div>
+
+            <!-- Theme Toggle Button -->
+            <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <!-- <nav class="tab-bar">
+        
+        <button class="tab-btn active" data-tab="flashcards">
+            <i class="fa-solid fa-clone"></i> <span data-i18n="tabFlashcards">Flashcards</span>
+        </button>
+        <button class="tab-btn" data-tab="chat">
+            <i class="fa-solid fa-comments"></i> <span data-i18n="tabChat">AI Chat Buddy</span>
+        </button>
+        <button class="tab-btn" data-tab="quiz">
+            <i class="fa-solid fa-circle-question"></i> <span data-i18n="tabQuiz">Daily Quiz</span>
+        </button>
+    </nav> -->
+    <!-- Main Navigation Tabs -->
+    <nav class="tab-bar">
+        <!-- Naya Start Learning Tab -->
+        <button class="tab-btn active" data-tab="lessons">
+            <i class="fa-solid fa-book-open"></i> <span data-i18n="tabLessons">Start Learning</span>
+        </button>
+        <button class="tab-btn" data-tab="flashcards">
+            <i class="fa-solid fa-clone"></i> <span data-i18n="tabFlashcards">Flashcards</span>
+        </button>
+        <button class="tab-btn" data-tab="chat">
+            <i class="fa-solid fa-comments"></i> <span data-i18n="tabChat">AI Chat Buddy</span>
+        </button>
+        <button class="tab-btn" data-tab="quiz">
+            <i class="fa-solid fa-circle-question"></i> <span data-i18n="tabQuiz">Daily Quiz</span>
+        </button>
+    </nav>
+
+    <!-- Main App Container -->
+    <main class="container">
+        <!-- Start Learning (Lessons) View -->
+        <section id="view-lessons" class="view-section active">
+            <!-- Level Selector View (Beginner, Intermediate, Advanced) -->
+            <!-- Level Selector View -->
+            <div id="levels-view" class="card">
+                <h2><i class="fa-solid fa-graduation-cap"></i> Select Your Level</h2>
+                <p class="text-muted" style="margin-bottom: 1.5rem;">Choose a level to start your structured lessons</p>
+                
+                <div class="levels-grid">
+                    <!-- Beginner Card -->
+                    <div class="level-card" onclick="selectLevel('Beginner')">
+                        <div class="level-icon beginner"><i class="fa-solid fa-seedling"></i></div>
+                        <h3>Beginner</h3>
+                        <p>10 Lessons • Basics, Alphabets & Greetings</p>
+                        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="event.stopPropagation(); selectLevel('Beginner');">Start Level</button>
+                    </div>
+
+                    <!-- Intermediate Card -->
+                    <div class="level-card" onclick="selectLevel('Intermediate')">
+                        <div class="level-icon intermediate"><i class="fa-solid fa-chart-line"></i></div>
+                        <h3>Intermediate</h3>
+                        <p>10 Lessons • Sentences & Daily Conversation</p>
+                        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="event.stopPropagation(); selectLevel('Intermediate');">Start Level</button>
+                    </div>
+
+                    <!-- Advanced Card -->
+                    <div class="level-card" onclick="selectLevel('Advanced')">
+                        <div class="level-icon advanced"><i class="fa-solid fa-trophy"></i></div>
+                        <h3>Advanced</h3>
+                        <p>10 Lessons • Fluency, Idioms & Formal Speech</p>
+                        <button class="btn btn-primary" style="margin-top: 1rem;" onclick="event.stopPropagation(); selectLevel('Advanced');">Start Level</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Selected Level Lessons List View (Pehle Hide rahega) -->
+            <div id="lessons-list-view" class="card hidden">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                    <button class="btn btn-secondary" onclick="showLevelSelector()">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Levels
+                    </button>
+                    <h2 id="current-level-title" style="margin: 0;">Lessons</h2>
+                </div>
+                
+                <!-- Dynamic Lessons Container -->
+                <div id="lessons-list" class="lessons-grid"></div>
+            </div>
+            <!-- lessons ka naya hissa 17.6pm wala  -->
+             <!-- Interactive Lesson Quiz View (Pehle Hide rahega) -->
+            <div id="lesson-quiz-view" class="card hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <button class="btn btn-secondary" onclick="exitLessonQuiz()"><i class="fa-solid fa-xmark"></i> Exit</button>
+                    <span id="lesson-quiz-progress" style="font-weight: bold;">Question 1 of 5</span>
+                </div>
+
+                <!-- Duolingo style Question Container -->
+                <div style="text-align: center; margin: 1.5rem 0;">
+                    <h3 id="lesson-quiz-question" style="font-size: 1.3rem; margin-bottom: 1rem;">Question Text</h3>
+                    
+                    <!-- Interactive Options Grid (4 to 6 options) -->
+                    <div id="lesson-quiz-options" class="options-grid"></div>
+                </div>
+
+                <!-- Bottom Feedback & Next Button Bar -->
+                <div id="quiz-feedback-bar" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                    <div id="feedback-message" style="font-weight: bold; font-size: 1.1rem;"></div>
+                    <button id="next-lesson-q-btn" class="btn btn-primary hidden" onclick="nextLessonQuestion()">Next Question</button>
+                </div>
+            </div>
+
+        </section>
+        <!-- 1. Flashcards View -->
+        <section id="view-flashcards" class="view-section ">
+            <div class="category-filter">
+                <label for="category-select" data-i18n="category">Category:</label>
+                <select id="category-select">
+                    <option value="all" data-i18n="catAll">All Categories</option>
+                    <option value="greetings" data-i18n="catGreetings">Greetings</option>
+                    <option value="travel" data-i18n="catTravel">Travel & Shopping</option>
+                    <option value="custom" data-i18n="catCustom">Custom Cards</option>
+                </select>
+            </div>
+
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="card-face card-front">
+                        <span class="card-badge" id="card-category">Greeting</span>
+                        <h2 id="card-front-text">Hello</h2>
+                        <p class="card-hint" data-i18n="clickToFlip">Click or spacebar to flip</p>
+                    </div>
+                    <div class="card-face card-back">
+                        <h2 id="card-back-text">नमस्ते</h2>
+                        <p id="card-phonetic" class="phonetic">Namaste</p>
+                        <button id="card-audio-btn" class="btn-audio">
+                            <i class="fa-solid fa-volume-high"></i> <span data-i18n="listen">Listen</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-controls">
+                <button id="prev-card-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i></button>
+                <span id="card-progress">1 / 10</span>
+                <button id="next-card-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+
+            <!-- Custom Card Creator -->
+            <div class="custom-card-form card">
+                <h3 data-i18n="addCustomTitle">Add Custom Vocabulary Card</h3>
+                <div class="form-group">
+                    <input type="text" id="custom-front" placeholder="Front Word / Phrase (e.g. Thank You)">
+                    <input type="text" id="custom-back" placeholder="Back Translation (e.g. धन्यवाद)">
+                    <input type="text" id="custom-phonetic" placeholder="Phonetic (e.g. Dhanyavaad)">
+                    <button id="add-card-btn" class="btn btn-primary" data-i18n="addCardBtn">Add Card</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. AI Chat Buddy View -->
+        <!-- 2. AI Chat Buddy View -->
+        <section id="view-chat" class="view-section">
+            <div class="chat-container card">
+                <div class="chat-header">
+                    <h3><i class="fa-solid fa-robot"></i> AI Samvad Mitra</h3>
+                    <p class="text-muted">Apne target language me free conversation karein</p>
+                </div>
+
+                <!-- Chat Messages Display Area -->
+                <div class="chat-messages" id="chat-messages">
+                    <div class="chat-bubble bot-bubble">Namaste! Main aapka AI Samvad Mitra hoon. Aaj aap kya seekhna chahte hain?</div>
+                </div>
+
+                <!-- Input Message Box & Send Button -->
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type a message in Hindi or English..." autocomplete="off">
+                    <button id="send-chat-btn" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- 3. Daily Quiz View -->
+        <section id="view-quiz" class="view-section">
+            <div class="quiz-card card">
+                <div class="quiz-header">
+                    <span id="quiz-progress">Question 1 of 5</span>
+                    <span id="quiz-score">Score: 0</span>
+                </div>
+                <div class="quiz-body">
+                    <h2 id="quiz-question">What is the translation for "Hello"?</h2>
+                    <div id="quiz-options" class="options-grid"></div>
+                </div>
+                <div class="quiz-footer">
+                    <button id="next-quiz-btn" class="btn btn-primary hidden" data-i18n="nextQuestion">Next Question</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Audio & Scripts -->
+    <script src="js/locales.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Authentication Modal -->
+<div class="modal-overlay hidden" id="auth-modal">
+    <div class="auth-card">
+        <button class="close-modal-btn" id="close-auth-modal">&times;</button>
+        
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-login-btn">Login</button>
+            <button class="auth-tab" id="tab-register-btn">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form" class="auth-form">
+            <h3>Welcome Back!</h3>
+            <div class="form-group">
+                <label><i class="fa-solid fa-envelope"></i> Email</label>
+                <input type="email" id="login-email" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label><i class="fa-solid fa-lock"></i> Password</label>
+                <input type="password" id="login-password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary auth-submit-btn">Login</button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="auth-form hidden">
+            <h3>Create Account</h3>
+            <div class="form-group">
+                <label><i class="fa-solid fa-user"></i> User Name</label>
+                <input type="text" id="reg-name" required placeholder="Tarang Kashyap">
+            </div>
+            <div class="form-group">
+                <label><i class="fa-solid fa-envelope"></i> Email</label>
+                <input type="email" id="reg-email" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label><i class="fa-solid fa-lock"></i> Password</label>
+                <input type="password" id="reg-password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary auth-submit-btn">Register</button>
+        </form>
+    </div>
+</div>
+
+    
+</body>
+</html>

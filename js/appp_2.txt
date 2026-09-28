@@ -1,0 +1,53 @@
+app_2.js ka hai
+
+
+
+// Question Screen Render Logic (Language-Aware Fix)
+function renderLessonQuestion() {
+    const q = currentLessonQuestions[currentQIndex];
+    
+    // User ne settings mein kya select kiya hai
+    const userBaseLang = (typeof state !== 'undefined' && state.baseLang) ? state.baseLang : 'en';
+    const userTargetLang = (typeof state !== 'undefined' && state.targetLang) ? state.targetLang : 'mr';
+
+    // 1. Question dynamic selector
+    let questionText = '';
+    if (typeof q.question === 'object') {
+        // Pehle targetLang check karein, fir baseLang, fir fallback
+        questionText = q.question[userTargetLang] || q.question[userBaseLang] || q.question['en'] || q.question['hi'];
+    } else {
+        questionText = q.question; // AGAR simple string hai
+    }
+
+    // 2. Options dynamic selector
+    let optionsList = [];
+    if (q.options_by_lang && q.options_by_lang[userTargetLang]) {
+        // Agar dynamic language options diye hain
+        optionsList = q.options_by_lang[userTargetLang];
+    } else if (q.options) {
+        optionsList = q.options;
+    }
+
+    // UI Update Elements
+    const qTextEl = document.getElementById('lesson-quiz-question');
+    const qProgressEl = document.getElementById('lesson-quiz-progress');
+    const feedbackEl = document.getElementById('feedback-message');
+    const nextBtn = document.getElementById('next-lesson-q-btn');
+    const optionsGrid = document.getElementById('lesson-quiz-options');
+
+    if (qTextEl) qTextEl.textContent = questionText;
+    if (qProgressEl) qProgressEl.textContent = `Question ${currentQIndex + 1} of ${currentLessonQuestions.length}`;
+    if (feedbackEl) feedbackEl.textContent = '';
+    if (nextBtn) nextBtn.classList.add('hidden');
+
+    if (optionsGrid) {
+        optionsGrid.innerHTML = '';
+        optionsList.forEach((optionText, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = optionText;
+            btn.onclick = () => checkLessonAnswer(index, q.correctIndex, btn);
+            optionsGrid.appendChild(btn);
+        });
+    }
+}

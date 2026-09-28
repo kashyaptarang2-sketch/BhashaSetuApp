@@ -1,0 +1,285 @@
+// Global Variables
+let allLessons = [];
+let currentLessonQuestions = [];
+let currentQIndex = 0;
+let lessonScore = 0;
+
+// State Object Fallback (Agar state.js load na ho toh app crash nahi hogi)
+const appState = (typeof state !== 'undefined') ? state : {
+    targetLang: 'mr',
+    streak: 0,
+    xp: 0
+};
+
+// 1. Fetch Lessons Data
+async function fetchAllLessons() {
+    try {
+        const response = await fetch('/api/lessons');
+        allLessons = await response.json();
+        console.log("Lessons loaded successfully:", allLessons);
+    } catch (err) {
+        console.error("Failed to load lessons:", err);
+    }
+}
+
+// 2. Select Level Action
+function selectLevel(levelName) {
+    console.log("Selecting Level:", levelName);
+    
+    const levelsView = document.getElementById('levels-view');
+    const lessonsListView = document.getElementById('lessons-list-view');
+    const levelTitle = document.getElementById('current-level-title');
+    const container = document.getElementById('lessons-list');
+
+    if (levelsView) levelsView.classList.add('hidden');
+    if (lessonsListView) lessonsListView.classList.remove('hidden');
+    if (levelTitle) levelTitle.textContent = `${levelName} Lessons`;
+
+    // Case-insensitive filtering
+    const filtered = allLessons.filter(l => 
+        l.level && l.level.toLowerCase() === levelName.toLowerCase()
+    );
+
+    if (!container) return;
+
+    if (!filtered || filtered.length === 0) {
+        container.innerHTML = `<p style="padding: 1rem;">No lessons available for ${levelName} yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(lesson => `
+        <div class="lesson-card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--border-color, #ccc); border-radius: 8px; margin-bottom: 0.8rem; background-color: var(--card-bg, #fff);">
+            <div>
+                <h4 style="margin: 0; font-size: 1.1rem;">${lesson.title}</h4>
+                <p style="margin: 0.3rem 0 0 0; font-size: 0.85rem; color: var(--text-secondary, #666);">${lesson.description || 'Interactive Lesson'}</p>
+            </div>
+            <button class="btn btn-primary" onclick="startLesson(${lesson.id})">
+                <i class="fa-solid fa-play"></i> Start
+            </button>
+        </div>
+    `).join('');
+}
+
+// 3. Show Level Selector
+function showLevelSelector() {
+    const levelsView = document.getElementById('levels-view');
+    const lessonsListView = document.getElementById('lessons-list-view');
+    if (lessonsListView) lessonsListView.classList.add('hidden');
+    if (levelsView) levelsView.classList.remove('hidden');
+}
+
+// 4. Start Lesson Action
+function startLesson(lessonId) {
+    console.log("Starting Lesson ID:", lessonId);
+    const lesson = allLessons.find(l => l.id === lessonId);
+    if (!lesson || !lesson.questions || lesson.questions.length === 0) {
+        alert("Is lesson mein abhi questions add nahi hain.");
+        return;
+    }
+
+    currentLessonQuestions = lesson.questions;
+    currentQIndex = 0;
+    lessonScore = 0;
+
+    const lessonsListView = document.getElementById('lessons-list-view');
+    const quizView = document.getElementById('lesson-quiz-view');
+    
+    if (lessonsListView) lessonsListView.classList.add('hidden');
+    if (quizView) quizView.classList.remove('hidden');
+
+    renderLessonQuestion();
+}
+
+// 5. Render Question
+function renderLessonQuestion() {
+    const q = currentLessonQuestions[currentQIndex];
+    const targetLang = appState.targetLang || 'mr';
+    
+    const questionText = (q.question && q.question[targetLang]) 
+        ? q.question[targetLang] 
+        : (q.question['mr'] || q.question['hi'] || "Question");
+    
+    const qTextEl = document.getElementById('lesson-quiz-question');
+    const qProgressEl = document.getElementById('lesson-quiz-progress');
+    const feedbackEl = document.getElementById('feedback-message');
+    const nextBtn = document.getElementById('next-lesson-q-btn');
+    const optionsGrid = document.getElementById('lesson-quiz-options');
+
+    if (qTextEl) qTextEl.textContent = questionText;
+    if (qProgressEl) qProgressEl.textContent = `Question ${currentQIndex + 1} of ${currentLessonQuestions.length}`;
+    if (feedbackEl) feedbackEl.textContent = '';
+    if (nextBtn) nextBtn.classList.add('hidden');
+
+    if (optionsGrid) {
+        optionsGrid.innerHTML = '';
+        q.options.forEach((optionText, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = optionText;
+            btn.onclick = () => checkLessonAnswer(index, q.correctIndex, btn);
+            optionsGrid.appendChild(btn);
+        });
+    }
+}
+
+// 6. Check Answer
+function checkLessonAnswer(selectedIndex, correctIndex, selectedBtn) {
+    const allBtns = document.querySelectorAll('#lesson-quiz-options .option-btn');
+    allBtns.forEach(btn => btn.disabled = true);
+
+    const feedbackEl = document.getElementById('feedback-message');
+    const nextBtn = document.getElementById('next-lesson-q-btn');
+
+    if (selectedIndex === correctIndex) {
+        selectedBtn.classList.add('correct');
+        if (feedbackEl) {
+            feedbackEl.textContent = "🎉 Sahi Jawab!";
+            feedbackEl.style.color = "green";
+        }
+        lessonScore += 10;
+    } else {
+        selectedBtn.classList.add('incorrect');
+        if (allBtns[correctIndex]) allBtns[correctIndex].classList.add('correct');
+        if (feedbackEl) {
+            feedbackEl.textContent = "❌ Galat Jawab!";
+            feedbackEl.style.color = "red";
+        }
+    }
+
+    if (nextBtn) nextBtn.classList.remove('hidden');
+}
+
+// 7. Next Question
+function nextLessonQuestion() {
+    currentQIndex++;
+    if (currentQIndex < currentLessonQuestions.length) {
+        renderLessonQuestion();
+    } else {
+        const qTextEl = document.getElementById('lesson-quiz-question');
+        const optionsGrid = document.getElementById('lesson-quiz-options');
+        const feedbackEl = document.getElementById('feedback-message');
+        const nextBtn = document.getElementById('next-lesson-q-btn');
+
+        if (qTextEl) qTextEl.textContent = `🏆 Lesson Complete! Score: ${lessonScore} XP`;
+        if (optionsGrid) optionsGrid.innerHTML = '';
+        if (feedbackEl) feedbackEl.textContent = 'Well Done!';
+        if (nextBtn) nextBtn.classList.add('hidden');
+    }
+}
+
+// 8. Exit Quiz
+function exitLessonQuiz() {
+    const quizView = document.getElementById('lesson-quiz-view');
+    const lessonsListView = document.getElementById('lessons-list-view');
+    if (quizView) quizView.classList.add('hidden');
+    if (lessonsListView) lessonsListView.classList.remove('hidden');
+}
+
+// 9. AI Chat Handler
+async function handleSendMessage() {
+    const inputEl = document.getElementById('chat-input');
+    const messagesContainer = document.getElementById('chat-messages');
+
+    if (!inputEl || !messagesContainer) return;
+    const userText = inputEl.value.trim();
+    if (!userText) return;
+
+    appendChatMessage('user', userText);
+    inputEl.value = '';
+
+    const loadingId = appendChatMessage('ai', 'Thinking...');
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: userText,
+                targetLang: appState.targetLang || 'Hindi'
+            })
+        });
+
+        const data = await response.json();
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+
+        if (response.ok && data.reply) {
+            appendChatMessage('ai', data.reply);
+        } else {
+            appendChatMessage('ai', "Error getting response from AI.");
+        }
+    } catch (err) {
+        console.error("Chat Error:", err);
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+        appendChatMessage('ai', "Network Connection Error.");
+    }
+}
+
+function appendChatMessage(sender, text) {
+    const messagesContainer = document.getElementById('chat-messages');
+    if (!messagesContainer) return;
+
+    const msgDiv = document.createElement('div');
+    const msgId = 'msg-' + Date.now();
+    msgDiv.id = msgId;
+    msgDiv.style.margin = "0.5rem 0";
+    msgDiv.style.padding = "0.8rem 1rem";
+    msgDiv.style.borderRadius = "12px";
+    
+    if (sender === 'user') {
+        msgDiv.style.backgroundColor = "#4A90E2";
+        msgDiv.style.color = "#fff";
+        msgDiv.style.marginLeft = "auto";
+        msgDiv.style.maxWidth = "80%";
+    } else {
+        msgDiv.style.backgroundColor = "#e0e0e0";
+        msgDiv.style.color = "#333";
+        msgDiv.style.marginRight = "auto";
+        msgDiv.style.maxWidth = "80%";
+    }
+
+    msgDiv.textContent = text;
+    messagesContainer.appendChild(msgDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    return msgId;
+}
+
+// Bind Functions Globally to Window (Direct Onclick support)
+window.selectLevel = selectLevel;
+window.showLevelSelector = showLevelSelector;
+window.startLesson = startLesson;
+window.nextLessonQuestion = nextLessonQuestion;
+window.exitLessonQuiz = exitLessonQuiz;
+window.handleSendMessage = handleSendMessage;
+
+// DOM Content Loaded Initializer
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Load Lessons
+    fetchAllLessons();
+
+    // 2. Tab Switches
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const views = document.querySelectorAll('.view-section');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            views.forEach(v => v.classList.remove('active'));
+            btn.classList.add('active');
+            const targetView = document.getElementById(`view-${btn.dataset.tab}`);
+            if (targetView) targetView.classList.add('active');
+        });
+    });
+
+    // 3. Chat Event Listeners
+    const sendBtn = document.getElementById('send-message-btn');
+    const chatInput = document.getElementById('chat-input');
+
+    if (sendBtn) sendBtn.onclick = handleSendMessage;
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSendMessage();
+        });
+    }
+});

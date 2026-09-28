@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "level": "Beginner",
+    "title": "Basic Greetings",
+    "description": "Learn daily greeting words",
+    "questions": [
+      {
+        "id": 101,
+        "question": {
+          "en": "How do you say 'Hello'?",
+          "hi": "'Hello' ko kya kehte hain?",
+          "mr": "'Hello' la kay mhantat?"
+        },
+        "options": {
+          "en": ["Hello / Greetings", "Thank You", "Goodbye", "Welcome"],
+          "hi": ["नमस्ते / नमस्कार", "धन्यवाद", "अलविदा", "स्वागत है"],
+          "mr": ["नमस्कार", "धन्यवाद", "पुन्हा भेटू", "स्वागत आहे"]
+        },
+        "correctIndex": 0
+      }
+    ]
+  }
+]

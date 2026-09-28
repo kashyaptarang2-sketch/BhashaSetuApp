@@ -1,0 +1,519 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // --- UI Elements ---
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const baseLangSelect = document.getElementById('base-lang');
+    const targetLangSelect = document.getElementById('target-lang');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const views = document.querySelectorAll('.view-section');
+    const streakCount = document.getElementById('streak-count');
+    const xpCount = document.getElementById('xp-count');
+
+    // --- State Initialization ---
+    document.documentElement.setAttribute('data-theme', state.theme);
+    baseLangSelect.value = state.baseLang;
+    targetLangSelect.value = state.targetLang;
+    updateStatsDisplay();
+
+    // --- Localization Engine ---
+    function updateTranslations() {
+        const lang = state.baseLang;
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (LOCALES[lang] && LOCALES[lang][key]) {
+                el.textContent = LOCALES[lang][key];
+            }
+        });
+    }
+    updateTranslations();
+
+    function updateStatsDisplay() {
+        streakCount.textContent = state.streak;
+        xpCount.textContent = state.xp;
+    }
+
+    // --- Event Listeners: Preferences ---
+    themeToggleBtn.addEventListener('click', () => {
+        const newTheme = state.theme === 'light' ? 'dark' : 'light';
+        state.setTheme(newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
+    });
+
+    baseLangSelect.addEventListener('change', (e) => {
+        state.setBaseLang(e.target.value);
+        updateTranslations();
+        renderCard();
+    });
+
+    targetLangSelect.addEventListener('change', (e) => {
+        state.setTargetLang(e.target.value);
+        renderCard();
+    });
+
+    // --- Tabs Switcher ---
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            views.forEach(v => v.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`view-${btn.dataset.tab}`).classList.add('active');
+        });
+    });
+    // --- Start Learning (Lessons) Logic ---
+    async function loadLessons() {
+        const lessonsContainer = document.getElementById('lessons-list');
+        if (!lessonsContainer) return;
+
+        try {
+            const response = await fetch('/api/lessons');
+            const lessons = await response.json();
+
+            if (!lessons || lessons.length === 0) {
+                lessonsContainer.innerHTML = '<p>No lessons available right now.</p>';
+                return;
+            }
+
+            lessonsContainer.innerHTML = lessons.map(lesson => `
+                <div class="lesson-card card" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span class="card-badge">${lesson.level || 'Beginner'}</span>
+                            <h3 style="margin-top: 0.5rem;">${lesson.title}</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">${lesson.cards ? lesson.cards.length : 0} Cards / Topics</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="alert('Starting lesson: ${lesson.title}')">
+                            <i class="fa-solid fa-play"></i> Start
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+        } catch (err) {
+            console.error("Failed to load lessons:", err);
+            lessonsContainer.innerHTML = '<p style="color: var(--danger-color);">Failed to load lessons from server.</p>';
+        }
+    }
+
+    // Load lessons initially
+    loadLessons();
+    //    naya code 17/5.35pm wala 
+    let allLessons = [];
+
+// API se saare lessons fetch karein
+async function fetchAllLessons() {
+    try {
+        const response = await fetch('/api/lessons');
+        allLessons = await response.json();
+    } catch (err) {
+        console.error("Failed to load lessons:", err);
+    }
+}
+
+// User jab kisi level (Beginner/Inter/Adv) par click kare
+function selectLevel(levelName) {
+    document.getElementById('levels-view').classList.add('hidden');
+    document.getElementById('lessons-list-view').classList.remove('hidden');
+    document.getElementById('current-level-title').textContent = `${levelName} Lessons`;
+
+    const filtered = allLessons.filter(l => l.level === levelName);
+    const container = document.getElementById('lessons-list');
+
+    if (!filtered || filtered.length === 0) {
+        container.innerHTML = `<p>No lessons available for ${levelName} yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(lesson => `
+        <div class="lesson-card" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 0.8rem;">
+            <div>
+                <h4 style="margin: 0;">${lesson.title}</h4>
+                <p style="margin: 0.3rem 0 0 0; font-size: 0.85rem; color: var(--text-secondary);">${lesson.description || ''}</p>
+            </div>
+            <button class="btn btn-primary" onclick="startLesson(${lesson.id})">
+                <i class="fa-solid fa-play"></i> Start
+            </button>
+        </div>
+    `).join('');
+}
+
+// Back button handler
+function showLevelSelector() {
+    document.getElementById('lessons-list-view').classList.add('hidden');
+    document.getElementById('levels-view').classList.remove('hidden');
+}
+
+// Initial Call
+fetchAllLessons();
+//// yaha tak hai 5/35pm wala
+
+    
+
+    // --- Flashcards Logic ---
+    let cardIndex = 0;
+    let filteredCards = state.getAllCards();
+    const flashcardEl = document.getElementById('flashcard');
+    const frontText = document.getElementById('card-front-text');
+    const backText = document.getElementById('card-back-text');
+    const phoneticText = document.getElementById('card-phonetic');
+    const cardProgress = document.getElementById('card-progress');
+
+    function renderCard() {
+        if (filteredCards.length === 0) return;
+        const currentCard = filteredCards[cardIndex];
+        frontText.textContent = currentCard[state.baseLang] || currentCard.en;
+        backText.textContent = currentCard[state.targetLang] || currentCard.hi;
+        phoneticText.textContent = currentCard[`phonetic_${state.targetLang}`] || '';
+        cardProgress.textContent = `${cardIndex + 1} / ${filteredCards.length}`;
+        flashcardEl.classList.remove('flipped');
+    }
+
+    flashcardEl.addEventListener('click', () => {
+        flashcardEl.classList.toggle('flipped');
+    });
+
+    document.getElementById('next-card-btn').addEventListener('click', () => {
+        if (cardIndex < filteredCards.length - 1) { cardIndex++; renderCard(); }
+    });
+
+    document.getElementById('prev-card-btn').addEventListener('click', () => {
+        if (cardIndex > 0) { cardIndex--; renderCard(); }
+    });
+
+    document.getElementById('card-audio-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentCard = filteredCards[cardIndex];
+        audioEngine.speak(currentCard[state.targetLang], state.targetLang);
+    });
+
+    // Custom Card Addition
+    document.getElementById('add-card-btn').addEventListener('click', () => {
+        const frontVal = document.getElementById('custom-front').value;
+        const backVal = document.getElementById('custom-back').value;
+        const phoneticVal = document.getElementById('custom-phonetic').value;
+
+        if (frontVal && backVal) {
+            const newCard = {
+                id: Date.now(),
+                category: "custom",
+                [state.baseLang]: frontVal,
+                [state.targetLang]: backVal,
+                [`phonetic_${state.targetLang}`]: phoneticVal
+            };
+            state.addCustomCard(newCard);
+            filteredCards = state.getAllCards();
+            renderCard();
+            document.getElementById('custom-front').value = '';
+            document.getElementById('custom-back').value = '';
+            document.getElementById('custom-phonetic').value = '';
+        }
+    });
+
+    // --- AI Chat Scenario Logic ---
+    // --- AI Chat Buddy Logic ---
+    const chatInput = document.getElementById('chat-input');
+    const sendChatBtn = document.getElementById('send-chat-btn');
+    const chatMessagesContainer = document.getElementById('chat-messages');
+
+    // Message Bubble Append Helper
+    function appendMessage(text, sender) {
+        if (!chatMessagesContainer) return null;
+        
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-bubble ${sender}-bubble`;
+        msgDiv.textContent = text;
+        
+        chatMessagesContainer.appendChild(msgDiv);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        return msgDiv;
+    }
+
+    // AI API Call Handler
+    async function handleSendMessage() {
+        if (!chatInput) return;
+        
+        const userText = chatInput.value.trim();
+        if (!userText) return;
+
+        // 1. Display User Message
+        appendMessage(userText, 'user');
+        chatInput.value = '';
+
+        // 2. Display Typing Indicator
+        const typingIndicator = appendMessage('AI Buddy is thinking...', 'bot');
+
+        try {
+            // 3. Backend Call (/api/chat)
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: userText,
+                    targetLang: state?.targetLang || 'hi'
+                })
+            });
+
+            const data = await response.json();
+            if (typingIndicator) typingIndicator.remove();
+
+            if (data.reply) {
+                appendMessage(data.reply, 'bot');
+                state.addXp(5); // Award XP on chatting
+                updateStatsDisplay();
+            } else {
+                appendMessage("Response receive nahi hua.", 'bot');
+            }
+        } catch (err) {
+            if (typingIndicator) typingIndicator.remove();
+            console.error("Chat Error:", err);
+            appendMessage("Server connection error. Please check backend.", 'bot');
+        }
+    }
+
+    // Event Listeners
+    if (sendChatBtn) {
+        sendChatBtn.onclick = handleSendMessage;
+    }
+
+    if (chatInput) {
+        chatInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                handleSendMessage();
+            }
+        };
+    }
+
+    // Initial Renders (Puraane scenario call ko hata kar yahan se call karein)
+    renderCard();
+    renderQuiz();
+    // --- Quiz Logic ---
+    let quizIdx = 0;
+    let quizScore = 0;
+
+    function renderQuiz() {
+        const q = QUIZ_DATA[quizIdx];
+        if (!q) return;
+
+        document.getElementById('quiz-question').textContent = q.question[state.baseLang] || q.question.en;
+        document.getElementById('quiz-progress').textContent = `Question ${quizIdx + 1} of ${QUIZ_DATA.length}`;
+        document.getElementById('quiz-score').textContent = `Score: ${quizScore}`;
+
+        const optionsGrid = document.getElementById('quiz-options');
+        optionsGrid.innerHTML = '';
+
+        q.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.addEventListener('click', () => {
+                const buttons = optionsGrid.querySelectorAll('.option-btn');
+                buttons.forEach(b => b.disabled = true);
+
+                if (idx === q.correctIndex) {
+                    btn.classList.add('correct');
+                    audioEngine.playCorrect();
+                    quizScore += 10;
+                    state.addXp(10);
+                    updateStatsDisplay();
+                } else {
+                    btn.classList.add('incorrect');
+                    buttons[q.correctIndex].classList.add('correct');
+                    audioEngine.playIncorrect();
+                }
+                document.getElementById('next-quiz-btn').classList.remove('hidden');
+            });
+            optionsGrid.appendChild(btn);
+        });
+    }
+
+    document.getElementById('next-quiz-btn').addEventListener('click', () => {
+        quizIdx++;
+        document.getElementById('next-quiz-btn').classList.add('hidden');
+        if (quizIdx < QUIZ_DATA.length) {
+            renderQuiz();
+        } else {
+            document.getElementById('quiz-question').textContent = `Quiz Complete! Final Score: ${quizScore}`;
+            document.getElementById('quiz-options').innerHTML = '';
+        }
+    });
+
+    // Initial Renders
+    renderCard();
+    renderChatStep(0);
+    renderQuiz();
+});
+// --- AI Chat Buddy Frontend Integration ---
+const chatInput = document.getElementById('chat-input');
+const sendChatBtn = document.getElementById('send-chat-btn');
+const chatMessagesContainer = document.getElementById('chat-messages');
+
+// Chat UI mein message render karne ka helper function
+function appendMessage(text, sender) {
+    if (!chatMessagesContainer) return null;
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-bubble ${sender}-bubble`;
+    msgDiv.textContent = text;
+    
+    chatMessagesContainer.appendChild(msgDiv);
+    chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    return msgDiv;
+}
+
+// AI Backend ko request bhejne wala main function
+async function handleSendMessage() {
+    if (!chatInput) return;
+    
+    const userText = chatInput.value.trim();
+    if (!userText) return;
+
+    // 1. User ka message UI par dikhain
+    appendMessage(userText, 'user');
+    chatInput.value = '';
+
+    // 2. Typing indicator (Bot is typing...)
+    const typingIndicator = appendMessage('AI Buddy is thinking...', 'bot');
+
+    try {
+        // 3. Backend Express Server (/api/chat) ko call karein
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({
+                message: userText,
+                targetLang: state.targetLang || 'Hindi',
+                scenario: state.currentScenario || 'General'
+            })
+        });
+
+        const data = await response.json();
+
+        // Typing indicator hatain aur real AI response dikhain
+        if (typingIndicator) typingIndicator.remove();
+
+        if (data.reply) {
+            appendMessage(data.reply, 'bot');
+        } else {
+            appendMessage("Sorry, I didn't get a response.", 'bot');
+        }
+    } catch (err) {
+        if (typingIndicator) typingIndicator.remove();
+        console.error("Chat API Error:", err);
+        appendMessage("Network error. Please check backend server.", 'bot');
+    }
+}
+
+// Event Listeners setup
+if (sendChatBtn) {
+    sendChatBtn.addEventListener('click', handleSendMessage);
+}
+
+if (chatInput) {
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSendMessage();
+        }
+    });
+}
+
+// --- Interactive Lesson Quiz Logic ---
+let currentLessonQuestions = [];
+let currentQIndex = 0;
+let lessonScore = 0;
+
+// Lesson start karne ka handler
+function startLesson(lessonId) {
+    const lesson = allLessons.find(l => l.id === lessonId);
+    if (!lesson || !lesson.questions || lesson.questions.length === 0) {
+        alert("Is lesson me questions nahi hain.");
+        return;
+    }
+
+    currentLessonQuestions = lesson.questions;
+    currentQIndex = 0;
+    lessonScore = 0;
+
+    document.getElementById('lessons-list-view').classList.add('hidden');
+    document.getElementById('lesson-quiz-view').classList.remove('hidden');
+
+    renderLessonQuestion();
+}
+
+// Question Screen Render logic
+function renderLessonQuestion() {
+    const q = currentLessonQuestions[currentQIndex];
+    const targetLang = state.targetLang || 'mr'; // Selected language (Marathi/Hindi)
+    
+    // Question Header Dynamic Set
+    const questionText = q.question[targetLang] || q.question['mr'] || q.question['hi'];
+    document.getElementById('lesson-quiz-question').textContent = questionText;
+    document.getElementById('lesson-quiz-progress').textContent = `Question ${currentQIndex + 1} of ${currentLessonQuestions.length}`;
+    
+    document.getElementById('feedback-message').textContent = '';
+    document.getElementById('next-lesson-q-btn').classList.add('hidden');
+
+    const optionsGrid = document.getElementById('lesson-quiz-options');
+    optionsGrid.innerHTML = '';
+
+    // Options Button Generate
+    q.options.forEach((optionText, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = optionText;
+        btn.onclick = () => checkLessonAnswer(index, q.correctIndex, btn);
+        optionsGrid.appendChild(btn);
+    });
+}
+
+// Answer Check logic
+function checkLessonAnswer(selectedIndex, correctIndex, selectedBtn) {
+    const allBtns = document.querySelectorAll('#lesson-quiz-options .option-btn');
+    allBtns.forEach(btn => btn.disabled = true); // Block multiple clicks
+
+    const feedbackEl = document.getElementById('feedback-message');
+
+    if (selectedIndex === correctIndex) {
+        selectedBtn.classList.add('correct');
+        feedbackEl.textContent = "🎉 Sahi Jawab! (Correct)";
+        feedbackEl.style.color = "var(--success-color)";
+        if (typeof audioEngine !== 'undefined') audioEngine.playCorrect();
+        lessonScore += 10;
+        if (typeof state !== 'undefined' && state.addXp) state.addXp(10);
+        if (typeof updateStatsDisplay === 'function') updateStatsDisplay();
+    } else {
+        selectedBtn.classList.add('incorrect');
+        allBtns[correctIndex].classList.add('correct'); // Sahi answer highlight karein
+        feedbackEl.textContent = "❌ Galat Jawab! Sahi option highlighted hai.";
+        feedbackEl.style.color = "var(--danger-color)";
+        if (typeof audioEngine !== 'undefined') audioEngine.playIncorrect();
+    }
+
+    document.getElementById('next-lesson-q-btn').classList.remove('hidden');
+}
+
+// Next Question Handler
+function nextLessonQuestion() {
+    currentQIndex++;
+    if (currentQIndex < currentLessonQuestions.length) {
+        renderLessonQuestion();
+    } else {
+        // Lesson Complete Screen
+        document.getElementById('lesson-quiz-question').textContent = `🏆 Lesson Complete! Total Score: ${lessonScore} XP`;
+        document.getElementById('lesson-quiz-options').innerHTML = '';
+        document.getElementById('feedback-message').textContent = 'Well Done!';
+        document.getElementById('next-lesson-q-btn').classList.add('hidden');
+    }
+}
+
+// Quiz Exit Button
+function exitLessonQuiz() {
+    document.getElementById('lesson-quiz-view').classList.add('hidden');
+    document.getElementById('lessons-list-view').classList.remove('hidden');
+}
+
+// Functions ko Window object par attach karein (HTML click handlers ke liye)
+window.selectLevel = selectLevel;
+window.showLevelSelector = showLevelSelector;
+window.startLesson = startLesson;
+window.nextLessonQuestion = nextLessonQuestion;
+window.exitLessonQuiz = exitLessonQuiz;
